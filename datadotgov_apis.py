@@ -1,5 +1,13 @@
 # -*- coding: utf-8 -*-
-"""DataDotGovAPI"""
+"""CS5224 Project DataDotGov APIs"""
+
+try:
+  ! pip install pgeocode
+  ! pip install haversine
+  ! pip install geopy
+  ! pip install pyproj
+except:
+  print("Something not installed")
 
 import pgeocode
 import requests # HTTP requests (GET / POST)
@@ -12,6 +20,7 @@ from pyproj import Transformer
 from geopy.geocoders import Nominatim
 from haversine import haversine, Unit
 from IPython.display import display, Image
+
 
 
 """## Helper Functions"""
@@ -41,30 +50,36 @@ def postalcode_to_coord(postal_code):
 
 def carpark_init(file_name):
   df_hdb_cp = pd.read_csv(file_name)
+
   transformer = Transformer.from_crs("EPSG:3414", "EPSG:4326")
   df_hdb_cp['lat_log'] = None
+
   for i in range(df_hdb_cp.shape[0]):
     df_hdb_cp['lat_log'][i] = transformer.transform(df_hdb_cp['y_coord'][i], df_hdb_cp['x_coord'][i])
+  
   return df_hdb_cp
-
-
 
 """## Finding the nearest carpark"""
 
 def nearest_carpark(place_coord, walking_dist_to_cp):
-  nearest_carpark_list = []
+  nearest_carpark_num_list = []
+  nearest_carpark_latlog_list = []
   for i in range(df_hdb_cp.shape[0]):
     if haversine(df_hdb_cp['lat_log'][i], place_coord, unit=Unit.METERS) < walking_dist_to_cp:
-      nearest_carpark_list.append(df_hdb_cp['car_park_no'][i])
-  return nearest_carpark_list
+      nearest_carpark_num_list.append(df_hdb_cp['car_park_no'][i])
+      nearest_carpark_latlog_list.append(df_hdb_cp['lat_log'][i])
+  return nearest_carpark_latlog_list, nearest_carpark_num_list
+
 
 
 """## Finding the nearest HDB carpark with availability data"""
 
 def hdb_carpark_availability(nearest_carpark_list):
+  # Obtaining carpark availability
   today = datetime.datetime.today()
   params = {"date_time": today.strftime("%Y-%m-%dT%H:%M:%S")} # YYYY-MM-DD 
   car = requests.get('https://api.data.gov.sg/v1/transport/carpark-availability', params=params).json()
+
   df = pd.DataFrame.from_dict(car['items'][0]['carpark_data'])
 
   # set of carpark which we have availability details
@@ -109,13 +124,13 @@ def taxi_availability(place_coord, dist):
   return num_taxi_all_singapore, num_taxi_near_me, taxi_near # (long,lat)
 
 
-
 def plot_taxi_near_me(taxi_near):
 # Plotting taxi near my location
   sg_map = folium.Map([1.3521, 103.8198], zoom_start = 12, tiles="Stamen Terrain")
   for coord in taxi_near:
       folium.Marker([coord[1], coord[0]]).add_to(sg_map)
   sg_map.save('taxi_availability.html')
+
 
 
 """# Weather Forecast"""
@@ -137,7 +152,6 @@ def get_weather_forecast():
   return df
 
 
-
 def trip_weather_forecast(df_weather_forecast, start_place_coord, dest_place_coord):
   nearest_to_start = None
   nearest_to_dest = None
@@ -157,4 +171,3 @@ def trip_weather_forecast(df_weather_forecast, start_place_coord, dest_place_coo
 
   return (df_weather_forecast['area'][nearest_to_start], df_weather_forecast['forecast'][nearest_to_start]), \
          (df_weather_forecast['area'][nearest_to_dest], df_weather_forecast['forecast'][nearest_to_dest])
-
