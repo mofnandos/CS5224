@@ -1,13 +1,14 @@
 # -*- coding: utf-8 -*-
 """CS5224 Project DataDotGov APIs"""
 
-try:
-  ! pip install pgeocode
-  ! pip install haversine
-  ! pip install geopy
-  ! pip install pyproj
-except:
-  print("Something not installed")
+# Commented this out cause it causes error
+#try:
+#  ! pip install pgeocode
+#  ! pip install haversine
+#  ! pip install geopy
+#  ! pip install pyproj
+#except:
+#  print("Something not installed")
 
 import pgeocode
 import requests # HTTP requests (GET / POST)
@@ -52,16 +53,15 @@ def carpark_init(file_name):
   df_hdb_cp = pd.read_csv(file_name)
 
   transformer = Transformer.from_crs("EPSG:3414", "EPSG:4326")
-  df_hdb_cp['lat_log'] = None
 
-  for i in range(df_hdb_cp.shape[0]):
-    df_hdb_cp['lat_log'][i] = transformer.transform(df_hdb_cp['y_coord'][i], df_hdb_cp['x_coord'][i])
+  df_hdb_cp['lat'], df_hdb_cp['log'] = transformer.transform(df_hdb_cp['y_coord'], df_hdb_cp['x_coord'])
+  df_hdb_cp['lat_log'] = list(zip(df_hdb_cp['lat'],df_hdb_cp['log']))
   
   return df_hdb_cp
 
 """## Finding the nearest carpark"""
 
-def nearest_carpark(place_coord, walking_dist_to_cp):
+def nearest_carpark(place_coord, walking_dist_to_cp, df_hdb_cp): ## added df_hdb_cp into the function
   nearest_carpark_num_list = []
   nearest_carpark_latlog_list = []
   for i in range(df_hdb_cp.shape[0]):
