@@ -63,4 +63,8 @@ def display_map(directions, taxi = [], carpark = pd.DataFrame({'carpark_list': [
     sw = (pd.DataFrame(lower).min()).values.tolist()
     ne = (pd.DataFrame(upper).max()).values.tolist()
     display.fit_bounds([sw, ne])
-    return display
+
+    map_html = display._repr_html_()
+    #map_html = display.get_root().render()
+
+    return map_html
