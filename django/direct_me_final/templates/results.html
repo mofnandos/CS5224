@@ -1,0 +1,106 @@
+{% load static %}
+
+<link rel="stylesheet" type="text/css" href="{% static 'main.css' %}">
+<script src="{% static 'main.js' %}"></script>
+<html>
+<head>
+    <title>Directions Information</title>
+
+</head>
+
+<div class="wrapper">
+
+<body>
+    <h1>Directions Information:</h1>
+
+    <table>
+        <tbody>
+            <tr>
+                <td class="col-1">Starting Location</td>
+                <td class="col-2">{{ result.start_location }}</td>
+            </tr>
+            <tr>
+                <td class="col-1">Destination Location</td>
+                <td class="col-2">{{ result.end_location }}</td>
+            </tr>
+            <tr>
+                <td class="col-1">Selected Mode</td>
+                <td class="col-2">{{ mode }}</td>
+            </tr>
+            <tr>
+                <td class="col-1">Distance</td>
+                <td class="col-2">{{ result.distance }}</td>
+            </tr>
+            <tr>
+                <td class="col-1">Duration Required</td>
+                <td class="col-2">{{ result.duration }}</td>
+            </tr>
+            <tr onclick="showHideColumn('hidden_column2');" style="cursor: pointer;">
+                <td>Directions <span style="color: blue;">(Click here to display)</span></td>
+                <td id="hidden_column2" style="display:none;">{{ result.steps|linebreaksbr }}</td>
+            </tr>
+            <script>
+                function showHideColumn(id) {
+                var element = document.getElementById(id);
+                if (element.style.display === "none") {
+                element.style.display = "table-cell"
+                } else {
+                element.style.display = "none";
+                }
+                }</script>
+            <tr>
+                <td class="col-1">Map</td>
+                <td class="col-2">{{ result.plot_html|safe }}</td>
+            </tr>
+        </tbody>
+    </table>
+
+    <h2>Additional Information:</h2>
+    <table>
+        <tbody class="additional-information">
+            <tr>
+                <td class="col-1">Duration by Driving</td>
+                <td class="col-2">{{ result.drive }}</td>
+            </tr>
+            <tr>
+                <td class="col-1">Carpark Availability</td>
+                <td class="col-2">{{ result.carpark|linebreaksbr }}</td>
+            </tr>
+            <tr>
+                <td class="col-1">&nbsp;</td>
+                <td class="col-2">&nbsp;</td>
+            </tr>
+            <tr>
+                <td class="col-1">Duration by Transit</td>
+                <td class="col-2">{{ result.transit }}</td>
+            </tr>
+            <tr>
+                <td class="col-1">Nearby Available Taxi</td>
+                <td class="col-2">{{ result.num_taxi }}</td>
+            </tr>
+            <tr>
+                <td class="col-1">&nbsp;</td>
+                <td class="col-2">&nbsp;</td>
+            </tr>
+            <tr>
+                <td class="col-1">Duration by Cycling</td>
+                <td class="col-2">{{ result.cycle }}</td>
+            </tr>
+            <tr>
+                <td class="col-1">Duration by Walking</td>
+                <td class="col-2">{{ result.walk }}</td>
+            </tr>
+            <tr>
+                <td class="col-1">Starting Location Weather</td>
+                <td class="col-2">{{ result.start_weather_forecast }}</td>
+            </tr>
+            <tr>
+                <td class="col-1">Destination Location Weather</td>
+                <td class="col-2">{{ result.dest_weather_forecast }}</td>
+            </tr>
+        </tbody>
+    </table>
+
+</body>
+</div>
+</html>
