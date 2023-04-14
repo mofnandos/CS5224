@@ -185,8 +185,7 @@ def get_direction(request):
 
     plot_html = ""
     if mode == 'driving':
-        plot_html = display_map(directions.directions(start, end, mode='driving')[0]['legs'][0]['steps'],
-                                carpark=carpark)
+        plot_html = display_map(directions.directions(start, end, mode='driving')[0]['legs'][0]['steps'])
     elif mode == 'transit':
         plot_html = display_map(directions.directions(start, end, mode='transit')[0]['legs'][0]['steps'])
     elif mode == 'bicycling':
