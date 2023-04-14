@@ -6,19 +6,44 @@ import googlemaps
 import polyline
 import re
 import time
-from direct.models import CarPark
+
 
 fileObject = open("apikey.txt", "r")
 api_key = fileObject.read()
 directions = googlemaps.Client(key=api_key)
 
 
+def nearby_restaurants(place_coord):
+    places_result = directions.places_nearby(place_coord, 500, type='restaurant', rank_by='prominence')
+
+    restaurants_list = []
+    for place in sorted(places_result['results'], key=lambda x: x.get('rating', 0), reverse=True)[:10]:
+        restaurant = {}
+        if 'rating' in place:
+            restaurant['rating'] = place['rating']
+        else:
+            restaurant['rating'] = None
+        restaurant['name'] = place.get('name', '')
+        restaurants_list.append(restaurant)
+    return restaurants_list
+
+
 def locations(request):
     if request.method == 'POST':
         start = request.POST.get('start')
         end = request.POST.get('end')
-        mode = request.POST.get('mode')
-        redirect('get_options', start=start, end=end, mode=mode)
+        mode = ''
+        if request.POST.get('mode_select') == 'Drive':
+            mode = 'driving'
+        elif request.POST.get('mode_select') == 'Taxi':
+            mode = 'driving'
+        elif request.POST.get('mode_select') == 'Public Transport':
+            mode = 'transit'
+        elif request.POST.get('mode_select') == 'Bicycle':
+            mode = 'bicycling'
+        elif request.POST.get('mode_select') == 'Walk':
+            mode = 'walking'
+        return redirect('get_direction', start=start, end=end, mode=mode)
     else:
         return render(request, 'route.html')
 
@@ -33,10 +58,20 @@ elif time.time() - timing >= (2 * 60 * 60):
 
 
 def get_direction(request):
-
-    start_location = request.GET.get('start') #could be either address or postal code
+    mode_select = request.GET.get('mode_select')
+    start_location = request.GET.get('start')  # could be either address or postal code
     end_location = request.GET.get('end')
-    mode = request.GET.get('mode') #driving, transit, bicycling, walking
+    mode = ''
+    if mode_select == 'Drive':
+        mode = 'driving'
+    elif mode_select == 'Taxi':
+        mode = 'driving'
+    elif mode_select == 'Public Transport':
+        mode = 'transit'
+    elif mode_select == 'Bicycle':
+        mode = 'bicycling'
+    elif mode_select == 'Walk':
+        mode = 'walking'
 
     if start_location.isdigit():
         nomi = pgeocode.Nominatim('sg')
@@ -64,10 +99,6 @@ def get_direction(request):
         place_long = getLoc.longitude
         end = (place_lat, place_long)
 
-    #start_location and end_location are user input, could be either postal code or address
-    #start and end are coordinates
-
-    #duration
     direction = directions.directions(start, end, mode)
 
     methods = ['walking', 'driving', 'transit', 'bicycling']
@@ -88,10 +119,74 @@ def get_direction(request):
         durations[method] = duration_mins
     min_duration = min(durations.values())
 
-    if mode == 'taxi':
-        plot_html = display_map(directions.directions(start, end, mode='driving')[0]['legs'][0]['steps'])
-    elif mode == 'driving':
-        plot_html = display_map(directions.directions(start, end, mode='driving')[0]['legs'][0]['steps'])
+    if min_duration == durations['walking']:
+        durations['walking'] = str(durations['walking']) + " mins (fastest mode)"
+    else:
+        durations['walking'] = str(durations['walking']) + " mins"
+    if min_duration == durations['driving']:
+        durations['driving'] = str(durations['driving']) + " mins (fastest mode)"
+    else:
+        durations['driving'] = str(durations['driving']) + " mins"
+    if min_duration == durations['bicycling']:
+        durations['bicycling'] = str(durations['bicycling']) + " mins (fastest Mmode)"
+    else:
+        durations['bicycling'] = str(durations['bicycling']) + " mins"
+    if min_duration == durations['transit']:
+        durations['transit'] = str(durations['transit']) + " mins (fastest mode)"
+    else:
+        durations['transit'] = str(durations['transit']) + " mins"
+
+    # steps - output: formatted_directions
+    steps = direction[0]['legs'][0]['steps']
+    formatted_steps = []
+    for i, step in enumerate(steps):
+        distance = step['distance']['text']
+        duration = step['duration']['text']
+        instruction = re.sub('<.*?>', '', step['html_instructions'])
+        formatted_step = f"{distance} ({duration}): {instruction}"
+        formatted_step = formatted_step.replace("&nbsp;", " ")
+        if i == len(steps) - 1:
+            formatted_step += "\nDestination will be on the left"
+        formatted_steps.append(formatted_step)
+    formatted_directions = "\n".join(formatted_steps)
+
+    # carpark - output: formatted_availability
+    df_hdb_cp = carpark_init()
+    carpark_latlog, carpark_num_list = nearest_carpark(end, 300, df_hdb_cp)
+    carpark = pd.DataFrame({'carpark_list': carpark_latlog, 'carpark_latlog': carpark_num_list})
+    availability = hdb_carpark_availability(carpark_num_list)
+    availability_dict = {cp: avail for cp, avail in availability.items()}
+    formatted_availability = "\n".join(
+        [f"Carpark {cp}: {avail} lots available" for cp, avail in availability_dict.items()])
+
+    restaurants_list = nearby_restaurants(end)
+
+    # taxi - output: num_taxi
+    num_taxi_all_singapore, num_taxi_near_me, taxi_near = taxi_availability(start, 500)
+    num_taxi = str(num_taxi_near_me) + " taxis available"
+
+    # weather forecast
+    start_weather_forecast, dest_weather_forecast = trip_weather_forecast(df_weather_forecast, start, end)
+
+    if (mode_select == 'Walk' or mode_select == 'Bicycle') and \
+            ('Cloudy' in start_weather_forecast or 'Cloudy' in dest_weather_forecast):
+        concerns = mode_select + " - Cloudy weather"
+    elif (mode_select == 'Walk' or mode_select == 'Bicycle') and \
+            ('showers' in start_weather_forecast or 'showers' in dest_weather_forecast):
+        concerns = mode_select + " - Rainy weather"
+    elif mode_select == 'Taxi' and num_taxi_near_me == 0:
+        concerns = mode_select + " - No taxi available nearby"
+    elif mode_select == 'Taxi' and num_taxi_near_me < 5:
+        concerns = mode_select + " - Low taxi availability nearby"
+    elif mode_select == 'Drive' and 'No HDB carpark' in formatted_availability:
+        concerns = mode_select + " - No HDB carpark lots available nearby"
+    else:
+        concerns = 'None'
+
+    plot_html = ""
+    if mode == 'driving':
+        plot_html = display_map(directions.directions(start, end, mode='driving')[0]['legs'][0]['steps'],
+                                carpark=carpark)
     elif mode == 'transit':
         plot_html = display_map(directions.directions(start, end, mode='transit')[0]['legs'][0]['steps'])
     elif mode == 'bicycling':
@@ -99,52 +194,9 @@ def get_direction(request):
     elif mode == 'walking':
         plot_html = display_map(directions.directions(start, end, mode='walking')[0]['legs'][0]['steps'])
 
-
-    if min_duration == durations['walking']:
-        durations['walking'] = str(durations['walking']) + " (Fastest Route)"
-    elif min_duration == durations['driving']:
-        durations['driving'] = str(durations['driving']) + " (Fastest Route)"
-    elif min_duration == durations['bicycling']:
-        durations['bicycling'] = str(durations['bicycling']) + " (Fastest Route)"
-    elif min_duration == durations['transit']:
-        durations['transit'] = str(durations['transit']) + " (Fastest Route)"
-
-
-    #steps - output: formatted_directions
-    steps = [[s["distance"]["text"],
-              s["duration"]["text"],
-              s["html_instructions"],
-              ]
-             for s in direction[0]['legs'][0]['steps']
-             ]
-
-    formatted_steps = []
-
-    for step in steps:
-        instruction = re.sub('<.*?>', '', step[2])
-        formatted_step = step[0] + " (" + step[1] + "): " + instruction
-        formatted_step = formatted_step.replace("&nbsp;", " ")
-        formatted_steps.append(formatted_step)
-    formatted_directions = "\n".join(formatted_steps)
-
-    df_hdb_cp = carpark_init('hdb-carpark-information.csv')
-    timing = -7201
-
-    #carpark - output: formatted_availability
-    carpark_latlog, carpark_num_list = nearest_carpark(end, 300, df_hdb_cp)
-    availability = hdb_carpark_availability(carpark_num_list)
-    availability_dict = {cp: avail for cp, avail in availability.items()}
-    formatted_availability = "\n".join(
-        [f"Carpark {cp} : {avail} lots available" for cp, avail in availability_dict.items()])
-
-    #taxi - output: num_taxi
-    num_taxi_all_singapore, num_taxi_near_me, taxi_near = taxi_availability(start, 500)
-    num_taxi = str(num_taxi_near_me) + " taxis available nearby"
-
-    #weather forecast
-    start_weather_forecast, dest_weather_forecast = trip_weather_forecast(df_weather_forecast, start, end)
-
     result = {
+        'mode_select': mode_select,
+        'mode': mode,
         'start_location': start_location,
         'end_location': end_location,
         'duration': direction[0]['legs'][0]['duration']['text'],
@@ -159,8 +211,10 @@ def get_direction(request):
         'steps': formatted_directions,
         'carpark': formatted_availability,
         'num_taxi': num_taxi,
+        'concerns': concerns,
         'start_weather_forecast': start_weather_forecast,
         'dest_weather_forecast': dest_weather_forecast,
+        'restaurants_list': restaurants_list
     }
 
     context = {
@@ -173,8 +227,8 @@ def get_direction(request):
     return render(request, 'results.html', context)
 
 
-def display_map(directions, taxi=[],
-                carpark=pd.DataFrame({'carpark_list': [], 'carpark_latlog': [], 'availability': []})):
+def display_map(directions, taxi=[], carpark=pd.DataFrame({'carpark_list': [],
+                                                           'carpark_latlog': [], 'availability': []})):
     colours = {'WALKING': 'blue', 'DRIVING': 'green', 'TRANSIT': 'green', 'BICYCLING': 'purple'}
     display = folium.Map()
     lower = []
@@ -216,6 +270,5 @@ def display_map(directions, taxi=[],
     sw = (pd.DataFrame(lower).min()).values.tolist()
     ne = (pd.DataFrame(upper).max()).values.tolist()
     display.fit_bounds([sw, ne])
-
     map_html = display._repr_html_()
     return map_html

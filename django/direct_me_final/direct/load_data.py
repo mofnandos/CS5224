@@ -1,6 +1,7 @@
 import csv
 from direct.models import CarPark
 
+
 def load_data():
     with open('hdb-carpark-information.csv') as f:
         reader = csv.reader(f)

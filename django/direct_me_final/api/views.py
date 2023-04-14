@@ -1,10 +1,12 @@
 import pgeocode
 import requests
 import datetime
+import googlemaps
 import pandas as pd
 from pyproj import Transformer
 from geopy.geocoders import Nominatim
 from haversine import haversine, Unit
+from direct.models import CarPark
 
 
 def address_to_coord(address):
@@ -55,7 +57,7 @@ def hdb_carpark_availability(nearest_carpark_list):
                 lots_available = df[df['carpark_number'] == carpark_number].iloc[0, 0][0]['lots_available']
                 carpark[carpark_number] = lots_available
     else:
-        carpark['availability'] = 'No HDB carparks nearby'
+        carpark['availability'] = 'No HDB carpark '
 
     return carpark
 
@@ -76,7 +78,7 @@ def taxi_availability(place_coord, dist):
 
     num_taxi_near_me = len(taxi_near)
 
-    return num_taxi_all_singapore, num_taxi_near_me, taxi_near # (long,lat)
+    return num_taxi_all_singapore, num_taxi_near_me, taxi_near  # (long,lat)
 
 
 def get_weather_forecast():
@@ -89,15 +91,17 @@ def get_weather_forecast():
     df = df[['area', 'forecast', 'label_location']]
     df['lat_log'] = None
 
-
     for i in range(df.shape[0]):
         df['lat_log'][i] = (df['label_location'][i]['latitude'], df['label_location'][i]['longitude'])
 
     df.drop(['label_location'], axis=1, inplace=True)
     return df
 
-def carpark_init(file_name):
-    df_hdb_cp = pd.read_csv(file_name)
+
+def carpark_init():
+    # df_hdb_cp = pd.read_csv(file_name)
+    carpark_qs = CarPark.objects.all()
+    df_hdb_cp = pd.DataFrame.from_records(carpark_qs.values())
     transformer = Transformer.from_crs("EPSG:3414", "EPSG:4326")
     df_hdb_cp['lat'], df_hdb_cp['log'] = transformer.transform(df_hdb_cp['y_coord'], df_hdb_cp['x_coord'])
     df_hdb_cp['lat_log'] = list(zip(df_hdb_cp['lat'], df_hdb_cp['log']))
