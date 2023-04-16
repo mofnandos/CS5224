@@ -5,7 +5,7 @@
   margin-top: 0;
   margin-bottom: 0;
   padding-top: 20px;
-    padding-bottom: 20px;
+  padding-bottom: 20px;
   min-height: 100vh;
 }
 
@@ -50,30 +50,121 @@ h1 {
     padding-left:20px;
     color: #A52A2A;
 }
-
-h4 {
+h3 {
     font-weight: bold;
     font-size: 36px;
     text-align: left;
     padding-left:20px;
+    margin-top:50px;
     color: #A52A2A;
 }
 
-th:first-child,
-td:first-child {
-    width: 30%;
+.table-1 tr:first-child,
+.table-1 td:first-child {
+    width: 350px;
     vertical-align: top;
     text-align: left;
     padding-left: 20px;
     padding-right: 20px;
 }
-}
-th:last-child,
-td:last-child {
-    width: 70%;
+.table-1 tr:nth-child(2),
+.table-1 td:nth-child(2) {
     text-align: left;
+    padding-right: 20px;
+}
+
+.table-2 tr:first-child,
+.table-2 td:first-child {
+    width: 350px;
     vertical-align: top;
+    text-align: left;
     padding-left: 20px;
     padding-right: 20px;
 }
 
+
+.table-3 tr:first-child,
+.table-3 td:first-child {
+    width: 350px;
+    vertical-align: top;
+    text-align: left;
+    padding-left: 20px;
+    padding-right: 20px;
+}
+.table-3 tr:nth-child(2),
+.table-3 td:nth-child(2) {
+    width: 8%;
+    text-align: left;
+    vertical-align: top;
+
+}
+.table-3 tr:nth-child(3),
+.table-3 td:nth-child(3) {
+    width: 40%;
+    text-align: left;
+    vertical-align: top;
+    padding-right: 20px;
+}
+
+.table-7 th:first-child,
+.table-7 td:first-child {
+    width: 350px;
+    vertical-align: top;
+    text-align: left;
+    padding-left: 20px;
+    padding-right: 20px;
+}
+.table-7 th:nth-child(2),
+.table-7 td:nth-child(2) {
+    text-align: left;
+    padding-right: 20px;
+}
+
+.table-9 th:first-child,
+.table-9 td:first-child {
+    width: 350px;
+    vertical-align: top;
+    text-align: left;
+    padding-left: 20px;
+    padding-right: 20px;
+    margin-bottom: 100px;
+}
+.table-9 th:nth-child(2),
+.table-9 td:nth-child(2) {
+    text-align: left;
+    padding-right: 20px;
+    margin-bottom: 100px;
+}
+
+.table-11 th:first-child,
+.table-11 td:first-child {
+    width: 5%;
+    vertical-align: top;
+    text-align: left;
+    padding-left: 20px;
+    padding-right: 20px;
+}
+.table-11 th:nth-child(2),
+.table-11 td:nth-child(2) {
+    width: 40%;
+    vertical-align: top;
+    text-align: left;
+    padding-left: 20px;
+    padding-right: 20px;
+}
+.table-11 th:nth-child(3),
+.table-11 td:nth-child(3) {
+    width: 12%;
+    vertical-align: top;
+    text-align: left;
+    padding-left: 20px;
+    padding-right: 20px;
+}
+.table-11 th:nth-child(4),
+.table-11 td:nth-child(4) {
+    width: 13%;
+    vertical-align: top;
+    text-align: left;
+    padding-left: 20px;
+    padding-right: 20px;
+}

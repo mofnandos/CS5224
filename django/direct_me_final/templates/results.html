@@ -2,6 +2,8 @@
 
 <link rel="stylesheet" type="text/css" href="{% static 'main.css' %}">
 <script src="{% static 'main.js' %}"></script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css" integrity="sha512-m7oA6vBmH9/Ba5y5xWd2Q3vF3N7fU6ZwUWcR81OvNemf9Cz1Lx0LaRlzyPjSvcc4Ag+zw+dZw1eQ8q3j4e9Qww==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+
 <html>
 <head>
     <title>Directions Information</title>
@@ -11,9 +13,9 @@
 <div class="wrapper">
 
 <body>
-    <h1>Directions Information:</h1>
+    <h1>Directions Information</h1>
 
-    <table>
+    <table class="table-1">
         <tbody>
             <tr>
                 <td class="col-1">Starting Location</td>
@@ -38,42 +40,74 @@
         </tbody>
     </table>
 
-    <h2></h2>
-    <table>
-        <tbody class="additional-information">
-            <tr>
-                <td class="col-1">Travel time for various mode</td>
-                <td class="col-2">Drive/Taxi: {{ result.drive }}<br>Public Transport: {{ result.transit }}<br>
-                    Bicycle: {{ result.cycle }}<br>Walk: {{ result.walk }}</td>
-            </tr>
-            <tr>
-                <td class="col-1">Weather</td>
-                <td class="col-2">{{ result.start_weather_forecast }}  |  {{ result.dest_weather_forecast }}</td>
-            </tr>
-            <tr>
-                <td class="col-1">Nearby Taxi Availablility</td>
-                <td class="col-2">{{ result.num_taxi }}</td>
-            </tr>
-            <tr>
-                <td class="col-1">Nearby Carpark Availability</td>
-                <td class="col-2">{{ result.carpark|linebreaksbr }}</td>
-            </tr>
-            <tr>
-                <td class="col-1">&nbsp;</td>
-                <td class="col-2">&nbsp;</td>
-            </tr>
-        </tbody>
+
+    <h2 style="margin-top: 50px"></h2>
+    <h1>Other Travel Information</h1>
+    <table class="table-2">
+        <tr>
+            <td class="col-1">Travel time for various mode</td>
+            <td class="col-2" style="font-weight: bold;">Drive/Taxi</td>
+            <td class="col-3" style="font-weight: bold;">Public Transport</td>
+            <td class="col-4" style="font-weight: bold;">Bicycle</td>
+            <td class="col-5" style="font-weight: bold;">Walk</td>
+        </tr>
+        <tr>
+            <td class="col-1"></td>
+            <td class="col-2">{{ result.drive }}</td>
+            <td class="col-3">{{ result.transit }}</td>
+            <td class="col-4">{{ result.cycle }}</td>
+            <td class="col-5">{{ result.walk }}</td>
+        </tr>
     </table>
 
-    <h3></h3>
-    <table>
-        <tbody>
-           <tr onclick="showHideColumn('hidden_column2');" style="cursor: pointer;">
-                <td>Directions (Click <span style="text-decoration: underline;">here</span> to expand)</td>
-                <td id="hidden_column2" style="display:none;">
-                    <span style="text-decoration: underline;">Detailed Directions: </span><br>{{ result.steps|linebreaksbr }}<br><br></td>
-            </tr>
-            <script>
+    <h2></h2>
+    <table class="table-7">
+        <tr>
+            <td class="col-1">Weather</td>
+            <td class="col-2">Starting Location: {{ result.start_weather_forecast }} <br> Destination Location: {{ result.dest_weather_forecast }}</td>
+        </tr>
+        <tr>
+            <td class="col-1">Nearby Taxi Availablility</td>
+            <td class="col-2">{{ result.num_taxi }}</td>
+        </tr>
+    </table>
+
+    <table class="table-3">
+        <tr>
+            <td>Carpark Availability</td>
+            <td style="font-weight: bold;">Carpark</td>
+            <td style="font-weight: bold;">Carpark Location</td>
+            <td style="font-weight: bold;">Available Slots</td>
+        </tr>
+        <tr>
+            <td></td>
+            <td>
+                {% for carpark in result.carpark %}
+                {{ carpark }}<br>
+                {% endfor %}
+            </td>
+            <td>
+                {% for address in result.address %}
+                {{ address }}<br>
+                {% endfor %}
+            </td>
+            <td>
+                {% for availability in result.availability %}
+                {{ availability }}<br>
+                {% endfor %}
+            </td>
+        </tr>
+    </table>
+
+
+    <h2></h2>
+    <table class="table-9" style="margin-bottom: 50px">
+        <tr onclick="showHideColumn('hidden_column2');" style="cursor: pointer;">
+            <td>Directions (Click <span style="text-decoration: underline;">here</span> to expand)</td>
+            <td id="hidden_column2" style="display:none;">
+                <span style="text-decoration: underline;">Detailed Directions: </span><br>{{ result.steps|linebreaksbr }}<br><br></td>
+        </tr>
+        <script>
                 function showHideColumn(id) {
                 var element = document.getElementById(id);
                 if (element.style.display === "none") {
@@ -82,25 +116,42 @@
                 element.style.display = "none";
                 }
                 }
-            </script>
-            <tr>
-                <td colspan="2">{{ result.plot_html|safe }}</td>
-            </tr>
-        </tbody>
+        </script>
+        <tr>
+            <td colspan="2">{{ result.plot_html|safe }}</td>
+        </tr>
     </table>
 
-    <h4>Top Rated Restaurants Nearby</h4>
-    <table>
+
+    <h2 style="margin-top: 50px"></h2>
+    <h1>Top Rated Restaurants Nearby</h1>
+    <table class="table-11">
+        <th>#</th>
         <th>Restaurants</th>
         <th>Google Rating</th>
+        <th>Number of Ratings</th>
+        <th>Price Level</th>
         {% for restaurant in result.restaurants_list %}
         <tr>
+            <td>{{ restaurant.index }}</td>
             <td>{{ restaurant.name }}</td>
-            <td style="text-align: left;">{{ restaurant.rating }}</td>
+            <td>{{ restaurant.rating }}</td>
+            <td>{{ restaurant.no_of_ratings }}</td>
+            <td>{{ restaurant.price_level }}</td>
         </tr>
         {% endfor %}
     </table>
 
 </body>
 </div>
+
+
+<div id="ad-container" style="position: fixed; bottom: 5; right: 0; width: 205px; height: 200px;">
+    <h4 style="position: absolute; top: -20; left: 0; padding: 0px; margin: 0; background-color: #ffffff; font-size: 15px; font-family: Calibri">Advertisement</h4>
+    <img src="{% static 'ads.jpg' %}" style="max-width: 100%; max-height: 100%; display: block;">
+    <button onclick="this.parentNode.style.display='none'" style="position: absolute; top: 0px; right: 6px;">Close</button>
+</div>
+
+
 </html>
+

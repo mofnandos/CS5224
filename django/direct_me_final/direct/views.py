@@ -17,14 +17,26 @@ def nearby_restaurants(place_coord):
     places_result = directions.places_nearby(place_coord, 500, type='restaurant', rank_by='prominence')
 
     restaurants_list = []
-    for place in sorted(places_result['results'], key=lambda x: x.get('rating', 0), reverse=True)[:10]:
-        restaurant = {}
-        if 'rating' in place:
+    for idx, place in enumerate(sorted(places_result['results'], key=lambda x: x.get('rating', 0), reverse=True)):
+        if 'rating' in place and place['rating'] >= 4:
+            restaurant = {}
+            restaurant['index'] = idx + 1
             restaurant['rating'] = place['rating']
-        else:
-            restaurant['rating'] = None
-        restaurant['name'] = place.get('name', '')
-        restaurants_list.append(restaurant)
+            restaurant['name'] = place.get('name', '')
+            if place.get('price_level', '') == 0:
+                restaurant['price_level'] = 'Free'
+            elif place.get('price_level', '') == 1:
+                restaurant['price_level'] = 'Inexpensive'
+            elif place.get('price_level', '') == 2:
+                restaurant['price_level'] = 'Moderate'
+            elif place.get('price_level', '') == 3:
+                restaurant['price_level'] = 'Expensive'
+            elif place.get('price_level', '') == 4:
+                restaurant['price_level'] = 'Very Expensive'
+            restaurant['no_of_ratings'] = place.get('user_ratings_total', '')
+            restaurants_list.append(restaurant)
+            if len(restaurants_list) == 10:
+                break
     return restaurants_list
 
 
@@ -120,19 +132,19 @@ def get_direction(request):
     min_duration = min(durations.values())
 
     if min_duration == durations['walking']:
-        durations['walking'] = str(durations['walking']) + " mins (fastest mode)"
+        durations['walking'] = str(durations['walking']) + " mins (fastest)"
     else:
         durations['walking'] = str(durations['walking']) + " mins"
     if min_duration == durations['driving']:
-        durations['driving'] = str(durations['driving']) + " mins (fastest mode)"
+        durations['driving'] = str(durations['driving']) + " mins (fastest)"
     else:
         durations['driving'] = str(durations['driving']) + " mins"
     if min_duration == durations['bicycling']:
-        durations['bicycling'] = str(durations['bicycling']) + " mins (fastest Mmode)"
+        durations['bicycling'] = str(durations['bicycling']) + " mins (fastest)"
     else:
         durations['bicycling'] = str(durations['bicycling']) + " mins"
     if min_duration == durations['transit']:
-        durations['transit'] = str(durations['transit']) + " mins (fastest mode)"
+        durations['transit'] = str(durations['transit']) + " mins (fastest)"
     else:
         durations['transit'] = str(durations['transit']) + " mins"
 
@@ -152,12 +164,22 @@ def get_direction(request):
 
     # carpark - output: formatted_availability
     df_hdb_cp = carpark_init()
-    carpark_latlog, carpark_num_list = nearest_carpark(end, 300, df_hdb_cp)
-    carpark = pd.DataFrame({'carpark_list': carpark_latlog, 'carpark_latlog': carpark_num_list})
+    carpark_latlog, carpark_num_list, address = nearest_carpark(end, 300, df_hdb_cp)
     availability = hdb_carpark_availability(carpark_num_list)
-    availability_dict = {cp: avail for cp, avail in availability.items()}
-    formatted_availability = "\n".join(
-        [f"Carpark {cp}: {avail} lots available" for cp, avail in availability_dict.items()])
+    address = address
+    if availability == 'No HDB carpark available':
+        carpark = 'No HDB carpark available'
+    else:
+        carpark = availability.keys()
+    availability = availability.values()
+    #avail_carpark = pd.DataFrame(
+        #{"Carpark": list(availability.keys()), "Address": address, "Availability": list(availability.values())})
+    #avail_carpark = avail_carpark.to_string(index=False)
+
+    #availability_dict = {cp: avail for cp, avail in availability.items()}
+    #formatted_availability = "\n".join(
+        #[f"Carpark {cp}: {avail} lots available" for cp, avail in availability_dict.items()])
+    #formatted_carpark = f"{address}:\n{formatted_availability}"
 
     restaurants_list = nearby_restaurants(end)
 
@@ -178,13 +200,16 @@ def get_direction(request):
         concerns = mode_select + " - No taxi available nearby"
     elif mode_select == 'Taxi' and num_taxi_near_me < 5:
         concerns = mode_select + " - Low taxi availability nearby"
-    elif mode_select == 'Drive' and 'No HDB carpark' in formatted_availability:
+    elif mode_select == 'Drive' and 'No HDB carpark available' in availability:
         concerns = mode_select + " - No HDB carpark lots available nearby"
     else:
         concerns = 'None'
 
     plot_html = ""
-    if mode == 'driving':
+    if mode_select == 'Taxi':
+        plot_html = display_map(directions.directions(start, end, mode='driving')[0]['legs'][0]['steps'],
+                                taxi=taxi_near)
+    elif mode_select == 'Drive':
         plot_html = display_map(directions.directions(start, end, mode='driving')[0]['legs'][0]['steps'])
     elif mode == 'transit':
         plot_html = display_map(directions.directions(start, end, mode='transit')[0]['legs'][0]['steps'])
@@ -208,8 +233,10 @@ def get_direction(request):
         'directions': direction[0]['legs'][0]['steps'],
         'plot_html': plot_html,
         'steps': formatted_directions,
-        'carpark': formatted_availability,
         'num_taxi': num_taxi,
+        'carpark': carpark,
+        'address': address,
+        'availability': availability,
         'concerns': concerns,
         'start_weather_forecast': start_weather_forecast,
         'dest_weather_forecast': dest_weather_forecast,

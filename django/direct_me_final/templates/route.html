@@ -9,17 +9,17 @@
 </head>
 
 <body>
-    <h1>Get Directions</h1>
+    <h1>Where do you want to go?</h1>
 
     <div class="container">
         <form action="{% url 'get_direction' %}" method="get">
-            <label for="start">Start Address:</label>
+            <label for="start">Start Location:</label>
             <input type="text" id="start" name="start"><br>
 
-            <label for="end">End Address:</label>
+            <label for="end">Destination Location:</label>
             <input type="text" id="end" name="end"><br>
 
-            <label for="mode_select">Mode:</label>
+            <label for="mode_select">Transit Mode:</label>
             <select id="mode_select" name="mode_select">
                 <option value="Drive">Drive</option>
                 <option value="Taxi">Taxi</option>

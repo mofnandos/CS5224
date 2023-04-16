@@ -6,3 +6,10 @@ function toggle() {
     x.style.display = "none";
   }
 }
+
+var closeAdBtn = document.getElementById('close-ad-btn');
+var adContainer = document.getElementById('ad-container');
+
+closeAdBtn.addEventListener('click', function() {
+  adContainer.style.display = 'none';
+});

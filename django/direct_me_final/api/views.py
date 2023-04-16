@@ -1,7 +1,6 @@
 import pgeocode
 import requests
 import datetime
-import googlemaps
 import pandas as pd
 from pyproj import Transformer
 from geopy.geocoders import Nominatim
@@ -30,11 +29,13 @@ def postalcode_to_coord(postal_code):
 def nearest_carpark(place_coord, walking_dist_to_cp, df_hdb_cp):
     nearest_carpark_num_list = []
     nearest_carpark_latlog_list = []
+    nearest_carpark_address = []
     for i in range(df_hdb_cp.shape[0]):
         if haversine(df_hdb_cp['lat_log'][i], place_coord, unit=Unit.METERS) < walking_dist_to_cp:
             nearest_carpark_num_list.append(df_hdb_cp['car_park_no'][i])
             nearest_carpark_latlog_list.append(df_hdb_cp['lat_log'][i])
-    return nearest_carpark_latlog_list, nearest_carpark_num_list
+            nearest_carpark_address.append(df_hdb_cp['address'][i])
+    return nearest_carpark_latlog_list, nearest_carpark_num_list, nearest_carpark_address
 
 
 def hdb_carpark_availability(nearest_carpark_list):
@@ -57,7 +58,7 @@ def hdb_carpark_availability(nearest_carpark_list):
                 lots_available = df[df['carpark_number'] == carpark_number].iloc[0, 0][0]['lots_available']
                 carpark[carpark_number] = lots_available
     else:
-        carpark['availability'] = 'No HDB carpark '
+        carpark['availability'] = 'No HDB carpark available'
 
     return carpark
 
@@ -81,6 +82,15 @@ def taxi_availability(place_coord, dist):
     return num_taxi_all_singapore, num_taxi_near_me, taxi_near  # (long,lat)
 
 
+def carpark_init():
+    carpark_qs = CarPark.objects.all()
+    df_hdb_cp = pd.DataFrame.from_records(carpark_qs.values())
+    transformer = Transformer.from_crs("EPSG:3414", "EPSG:4326")
+    df_hdb_cp['lat'], df_hdb_cp['log'] = transformer.transform(df_hdb_cp['y_coord'], df_hdb_cp['x_coord'])
+    df_hdb_cp['lat_log'] = list(zip(df_hdb_cp['lat'], df_hdb_cp['log']))
+    return df_hdb_cp
+
+
 def get_weather_forecast():
     today = datetime.datetime.today()
     params = {"date": today.strftime("%Y-%m-%d")}  # YYYY-MM-DD
@@ -96,16 +106,6 @@ def get_weather_forecast():
 
     df.drop(['label_location'], axis=1, inplace=True)
     return df
-
-
-def carpark_init():
-    # df_hdb_cp = pd.read_csv(file_name)
-    carpark_qs = CarPark.objects.all()
-    df_hdb_cp = pd.DataFrame.from_records(carpark_qs.values())
-    transformer = Transformer.from_crs("EPSG:3414", "EPSG:4326")
-    df_hdb_cp['lat'], df_hdb_cp['log'] = transformer.transform(df_hdb_cp['y_coord'], df_hdb_cp['x_coord'])
-    df_hdb_cp['lat_log'] = list(zip(df_hdb_cp['lat'], df_hdb_cp['log']))
-    return df_hdb_cp
 
 
 def trip_weather_forecast(df_weather_forecast, start_place_coord, dest_place_coord):
