@@ -18,7 +18,7 @@ def nearby_restaurants(place_coord):
 
     restaurants_list = []
     for idx, place in enumerate(sorted(places_result['results'], key=lambda x: x.get('rating', 0), reverse=True)):
-        if 'rating' in place and place['rating'] >= 4:
+        if 'rating' in place:
             restaurant = {}
             restaurant['index'] = idx + 1
             restaurant['rating'] = place['rating']
